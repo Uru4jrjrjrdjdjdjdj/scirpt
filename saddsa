@@ -85,12 +85,6 @@ local Library = {
     GlowTransparency = 0.5;
     GlowSize = 40;
     GlowColorMatchAccent = true;
-    
-    -- Advanced UI Features
-    RoundedCorners = true;
-    CornerRadius = 4;
-    AnimationsEnabled = true;
-    AnimationSpeed = 0.2;
 
     OpenedFrames = {};
     DependencyBoxes = {};
@@ -240,7 +234,7 @@ function Library:CreateLabel(Properties, IsHud)
         BackgroundTransparency = 1;
         Font = Library.Font;
         TextColor3 = Library.FontColor;
-        TextSize = Library:GetScaledFontSize(Library.BaseFontSize);
+        TextSize = 16;
         TextStrokeTransparency = 0;
     });
 
@@ -248,8 +242,6 @@ function Library:CreateLabel(Properties, IsHud)
 
     Library:AddToRegistry(_Instance, {
         TextColor3 = 'FontColor';
-        Font = 'Font';
-        TextSize = function() return Library:GetScaledFontSize(Library.BaseFontSize) end;
     }, IsHud);
 
     return Library:Create(_Instance, Properties);
@@ -513,18 +505,24 @@ function Library:RemoveFromRegistry(Instance)
     end;
 end;
 
--- Optimized color and property update with visibility check
 function Library:UpdateColorsUsingRegistry()
+    -- TODO: Could have an 'active' list of objects
+    -- where the active list only contains Visible objects.
+
+    -- IMPL: Could setup .Changed events on the AddToRegistry function
+    -- that listens for the 'Visible' propert being changed.
+    -- Visible: true => Add to active list, and call UpdateColors function
+    -- Visible: false => Remove from active list.
+
+    -- The above would be especially efficient for a rainbow menu color or live color-changing.
+
     for Idx, Object in next, Library.Registry do
-        local Instance = Object.Instance;
-        if Instance and Instance.Parent and (Instance:IsA('GuiObject') and Instance.Visible or not Instance:IsA('GuiObject')) then
-            for Property, ValueIdx in next, Object.Properties do
-                if type(ValueIdx) == 'string' then
-                    Instance[Property] = Library[ValueIdx];
-                elseif type(ValueIdx) == 'function' then
-                    Instance[Property] = ValueIdx()
-                end
-            end;
+        for Property, ColorIdx in next, Object.Properties do
+            if type(ColorIdx) == 'string' then
+                Object.Instance[Property] = Library[ColorIdx];
+            elseif type(ColorIdx) == 'function' then
+                Object.Instance[Property] = ColorIdx()
+            end
         end;
     end;
 
@@ -617,28 +615,6 @@ function Library:SetBackgroundImageTransparency(transparency)
     if type(transparency) == "number" and transparency >= 0 and transparency <= 1 then
         self.BackgroundImageTransparency = transparency;
     end;
-end;
-
--- Advanced UI Helper Functions
-function Library:ApplyRounding(Inst, Radius)
-    if not self.RoundedCorners then return end;
-    return Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, Radius or self.CornerRadius);
-        Parent = Inst;
-    });
-end;
-
-function Library:Animate(Inst, Properties, Duration, Style, Direction)
-    if not self.AnimationsEnabled then
-        for Prop, Value in next, Properties do
-            Inst[Prop] = Value;
-        end;
-        return;
-    end;
-    
-    local Tween = TweenService:Create(Inst, TweenInfo.new(Duration or self.AnimationSpeed, Style or Enum.EasingStyle.Quad, Direction or Enum.EasingDirection.Out), Properties);
-    Tween:Play();
-    return Tween;
 end;
 
 function Library:GiveSignal(Signal)
